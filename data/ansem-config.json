@@ -1,0 +1,98 @@
+{
+  "projectName": "$ANSEM / The Black Bull",
+  "officialContract": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
+  "officialWebsite": "https://www.blackbullsol.com/",
+  "officialDashboard": "",
+  "officialLinks": [
+    {
+      "label": "Official website",
+      "url": "https://www.blackbullsol.com/"
+    },
+    {
+      "label": "Solscan token page",
+      "url": "https://solscan.io/token/9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump"
+    },
+    {
+      "label": "DexScreener ANSEM search",
+      "url": "https://dexscreener.com/search?q=9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump"
+    },
+    {
+      "label": "CoinGecko The Black Bull",
+      "url": "https://www.coingecko.com/en/coins/the-black-bull"
+    },
+    {
+      "label": "CoinMarketCap The Black Bull",
+      "url": "https://coinmarketcap.com/currencies/the-black-bull/"
+    },
+    {
+      "label": "MEXC ANSEM guide",
+      "url": "https://www.mexc.com/how-to-buy/ANSEM"
+    }
+  ],
+  "trustedXAccounts": [
+    {
+      "handle": "blknoiz06",
+      "label": "Official dev X account",
+      "url": "https://x.com/blknoiz06"
+    }
+  ],
+  "announcementSources": [],
+  "documents": [
+    {
+      "title": "Scam safety policy",
+      "kind": "security",
+      "content": "Only trust links, accounts, dashboards, and contracts listed as official sources in AnsemAI. If a contract, X account, Telegram, Discord, airdrop, presale, support agent, or wallet-draining approval link is not in official sources, treat it as unverified. Never share seed phrases or private keys."
+    },
+    {
+      "title": "Configured project basics",
+      "kind": "faq",
+      "content": "$ANSEM / The Black Bull is configured in this assistant as a Solana token with official contract 9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump, official website https://www.blackbullsol.com/, and trusted dev X account @blknoiz06. Treat copycat contracts and impersonator accounts as unverified unless they match the configured official sources."
+    },
+    {
+      "title": "Beginner explanation",
+      "kind": "faq",
+      "content": "$ANSEM, also listed as The Black Bull, is a Solana memecoin/community token built around the Black Bull brand and the Ansem/blknoiz06 community. For a beginner: it is a highly volatile crypto token, not a company share and not a guaranteed yield product. The safest first steps are to verify the Solana contract, use official links only, and treat market commentary as speculation unless backed by live data or official sources."
+    },
+    {
+      "title": "Market listings summary",
+      "kind": "market",
+      "content": "CoinGecko and CoinMarketCap list The Black Bull under ticker ANSEM and track live price, market cap, volume, circulating supply, and exchange markets. These numbers move constantly, so AnsemAI should use DexScreener for live DEX market questions and cite market sites only as third-party listings. CoinGecko describes ANSEM markets across DEX and CEX venues, including Meteora as an active ANSEM/SOL market. CoinMarketCap lists max supply as 1,000,000,000 ANSEM and circulating supply around the low hundreds of millions at the time of listing, but live supply and market data should be rechecked."
+    },
+    {
+      "title": "Where ANSEM trades",
+      "kind": "faq",
+      "content": "Third-party market sites show ANSEM trading on Solana venues and selected centralized exchanges. CoinGecko lists Meteora and PumpSwap among market venues, and MEXC provides a buy guide for ANSEM. This assistant should not tell users where they must trade. It should explain that DEX trading requires a Solana wallet and careful contract verification, while CEX availability can change."
+    },
+    {
+      "title": "Who is Ansem",
+      "kind": "faq",
+      "content": "Within this assistant's configured sources, Ansem is tied to the trusted dev/community X account @blknoiz06. Third-party crypto coverage commonly describes Ansem as a Solana trader/influencer or KOL connected to the narrative around The Black Bull. This assistant should avoid personal claims that are not in configured sources and should refer users to the trusted account link for identity verification."
+    },
+    {
+      "title": "Risk explanation",
+      "kind": "risk",
+      "content": "$ANSEM is a memecoin-style crypto asset, so risks include extreme volatility, copycat contracts, impersonator accounts, low-liquidity price swings, slippage, wallet-draining links, fake airdrops, exchange delistings, and rumors spreading faster than verified information. Market-cap changes do not mean guaranteed liquidity. Always verify the contract and links before trading. Market answers must include not financial advice."
+    },
+    {
+      "title": "What AnsemAI can answer",
+      "kind": "faq",
+      "content": "AnsemAI can answer beginner explanations, official contract checks, official link checks, scam warnings, risk explanations, holder/supply caveats, and live market questions through DexScreener. It should refuse unrelated questions and should say it couldn't verify information from official sources when configured sources do not support the answer."
+    }
+  ],
+  "apiKeys": {
+    "llmProvider": "groq",
+    "llmApiKey": "",
+    "llmBaseUrl": "https://api.groq.com/openai/v1",
+    "llmModel": "llama-3.1-8b-instant",
+    "cohereApiKey": "",
+    "cohereBaseUrl": "https://api.cohere.ai/compatibility/v1",
+    "cohereModel": "command-a-03-2025",
+    "openai": "",
+    "helius": "",
+    "birdeye": "",
+    "xApi": "",
+    "redis": "",
+    "supabaseUrl": "",
+    "supabaseAnon": ""
+  }
+}
