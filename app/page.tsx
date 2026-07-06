@@ -1,6 +1,7 @@
 import { LockKeyhole } from "lucide-react";
 import { BullLogo } from "@/components/bull-logo";
 import { Chat } from "@/components/chat";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
       <div className="panel-glow mx-auto mt-3 flex min-h-0 w-full max-w-7xl flex-1 overflow-hidden rounded-lg bg-[var(--surface)]">
         <Chat />
       </div>
+      <SiteFooter />
     </main>
   );
 }
