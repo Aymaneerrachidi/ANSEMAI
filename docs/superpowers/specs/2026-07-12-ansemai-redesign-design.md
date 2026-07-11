@@ -47,6 +47,12 @@ distinguishing official/confirmed vs. third-party vs. unverified claims. Nothing
 `officialContract` / `officialWebsite` / `trustedXAccounts` in the current config — those already
 match what the research confirms as official.
 
+The existing config already has generic "Who is Ansem" (`faq`) and "Risk explanation" (`risk`)
+documents. The new, more detailed bio and concentration-risk documents **replace** these two
+existing entries rather than sit alongside them (same `kind`, richer `content`) — avoids surfacing
+two versions of the same topic once `localAnswer`'s who-is-Ansem/risk branches are rewired through
+`findRelevantDocs`.
+
 ## 1. Knowledge base additions (`data/ansem-config.json`)
 
 Add new documents (kinds: `history`, `faq`, `risk`, `security`, `rumor`) covering the five findings
@@ -55,15 +61,34 @@ top-level config array:
 
 ```ts
 knownImpersonators: Array<{
-  label: string;        // e.g. "Fake airdrop-claim site"
-  pattern: string;       // domain or handle to match against user-submitted links, e.g. "blackbullsol.club"
-  note: string;          // short reason, e.g. "Wallet-drainer scam site impersonating the official domain"
+  label: string;               // e.g. "Fake airdrop-claim site"
+  kind: "domain" | "handle";   // which matcher to apply
+  pattern: string;             // normalized domain (no protocol/www, lowercase) or handle (no leading @, lowercase)
+  note: string;                // short reason, e.g. "Wallet-drainer scam site impersonating the official domain"
 }>
 ```
 
-`lib/types.ts` gains this field on `AnsemConfig`. `scripts/manage-config.mjs` gains an
-`add-impersonator` subcommand mirroring the existing `add-doc` / `add-announcement-source`
-pattern, so curation stays script-driven with no admin UI (unchanged project constraint).
+`lib/types.ts` gains this field on `AnsemConfig`, defaulting to `[]` wherever read (the field won't
+exist in the JSON file until this lands, so all readers — `officialSources`, the checker, the
+Signal Rail — must tolerate `undefined`/missing).
+
+Matching rules (`verifyUserInput` in `lib/answer-engine.ts`), to remove ambiguity between "official
+allowlist" (exact match) and "impersonator list" (fuzzy match):
+
+- Before matching, normalize both the submitted value and every `pattern`: strip `https://`/`http://`
+  and leading `www.`, strip trailing slashes, lowercase.
+- `kind: "domain"` patterns match a submitted URL if the normalized submitted host **equals or ends
+  with** the pattern (so `claim.blackbullsol.club` also matches a `blackbullsol.club` pattern).
+- `kind: "handle"` patterns match a submitted `@handle` if the normalized handle (no `@`) equals the
+  pattern exactly (handles don't get substring/subdomain-style matching).
+- Impersonator matching runs only for values that did **not** already match the official allowlist —
+  a value is either "listed as official," "matches a known impersonator: `<note>`," or "I couldn't
+  verify this from official sources," never more than one of these.
+
+`scripts/manage-config.mjs` gains an `add-impersonator` subcommand mirroring the existing `add-doc`
+/ `add-announcement-source` pattern (writing normalized `pattern` values), so curation stays
+script-driven with no admin UI (unchanged project constraint). The `list` subcommand is extended to
+also print configured impersonators, for consistency with how it already lists other config arrays.
 
 ## 2. Backend logic (`lib/answer-engine.ts`, `lib/intents.ts`)
 
@@ -84,6 +109,13 @@ pattern, so curation stays script-driven with no admin UI (unchanged project con
 - **Intent detection**: add a handful of phrasings found during research to existing keyword buckets
   in `lib/intents.ts` (e.g. "is this legit", "who really made this", "concentration", "rug") — no
   structural change, same keyword-bucket approach.
+- **Scope gate update (required, not optional)**: `isAnsemScoped()` in `lib/answer-engine.ts` is a
+  separate gate that runs *before* `detectIntent`/`localAnswer` are ever reached (see
+  `answerQuestion`). Its `scopeTerms` list must gain the same new terms ("legit", "rug",
+  "concentration", "impersonator", etc.), or questions using those words are rejected by
+  `outOfScopeAnswer` before the improved checker/intent logic ever sees them — today, e.g., "is this
+  legit" already fails this way even though `detectIntent` alone would classify it correctly. Both
+  lists change together in the same commit.
 
 No changes to `lib/chain-data.ts` or `lib/live-data.ts` logic itself, but see below — their output
 shapes are reused by a new API route for the UI panel.
@@ -98,6 +130,13 @@ Needs a small refactor: extract the raw numeric fields (price, change, mcap, liq
 top-10 holder %) that `getDexScreenerMarket`/`getHolderSnapshot` currently only emit as pre-formatted
 text lines, into a small typed struct each function returns alongside its `LiveResult` text, so the
 same underlying fetch serves both the chat text answer and the panel's structured numbers.
+
+This route is public and unauthenticated like `/api/chat`, and `getHolderSnapshot` calls Solana RPC
+with no cache window (`cache: "no-store"`) — so it must reuse the same `checkRateLimit` /
+`clientKeyFromHeaders` utilities `/api/chat` already uses (`lib/rate-limit.ts`), keyed per-client,
+before this becomes a free way to hammer the configured RPC endpoint. The DexScreener half can keep
+relying on its existing `next: { revalidate: 30 }` fetch cache; the rate limit is specifically to
+protect the RPC call.
 
 ## 4. Visual redesign — Terminal split-view
 
@@ -118,11 +157,25 @@ same underlying fetch serves both the chat text answer and the panel's structure
     "not official" badge.
   - Loading state: skeleton shimmer blocks, not blank space. Error state: "couldn't fetch live
     data" message consistent with the chat path's existing error language.
-- **Shared visual pass**: header, footer, message bubbles, and source-citation cards get a
-  consistency pass against the new rail's card styling (border/radius/spacing scale), plus general
-  polish (empty state, loading state in chat itself). Keep the existing dark green/black palette,
-  bull crest, and noise/grid atmosphere from `globals.css` as the base — this is refinement and
-  extension of the current identity, not a palette replacement.
+- **Shared visual pass** — scoped to these specific files/elements, so it doesn't become open-ended
+  polish work:
+  - `app/page.tsx` header (`hero-bar`): tighten spacing now that a rail sits alongside it; the
+    "Official sources only" pill moves to reference the rail instead of floating alone.
+  - `components/chat.tsx` message bubbles and the existing inline source-citation block (lines
+    ~140-168): restyle to share the exact border/radius/padding scale used by the new
+    `SignalRail` cards, so the two panels read as one system rather than two different eras of the
+    app.
+  - `components/chat.tsx` empty state (the starter-question grid shown when `messages.length === 1`):
+    visual refresh only (spacing/hover states), no behavior change.
+  - New loading state in `components/chat.tsx`: while a response is streaming and `content` is still
+    empty, show a skeleton/typing indicator instead of an empty bubble (today an empty assistant
+    bubble is pushed to state immediately on submit — see `chat.tsx` lines 36-37 — and stays visually
+    empty until the first chunk arrives).
+  - `components/site-footer.tsx`: no structural change, minor styling alignment only (border/color
+    tokens) to match the new card system.
+  - `app/globals.css`: extend, don't replace — add the new card/skeleton/pulse-on-update primitives
+    the rail needs as new classes alongside the existing ones (`.panel-glow`, `.pulse-dot`, etc.),
+    keep the current dark green/black palette, bull crest, and noise/grid atmosphere as the base.
 
 ## Out of scope
 
@@ -131,6 +184,20 @@ same underlying fetch serves both the chat text answer and the panel's structure
 - No embedding/semantic search work (README already flags this as a separate future item).
 - No change to rate limiting, Supabase document merge, or the LLM provider fallback chain beyond
   the system prompt content itself.
+
+## Sequencing
+
+Although coupled, the three workstreams touch disjoint files with different risk profiles and
+should be planned/built as three ordered sub-steps, not one monolithic change:
+
+1. **Content** — knowledge base documents + `knownImpersonators` config + `manage-config.mjs`
+   subcommand + `lib/types.ts`. Independently testable (config loads, script runs).
+2. **Backend logic** — `isAnsemScoped`/`lib/intents.ts` term updates, `verifyUserInput` impersonator
+   matching, system prompt rewrite, local composer enrichment. Depends on (1) existing in config.
+   Independently testable via `answerQuestion`/`localAnswer` without touching the UI.
+3. **UI** — `/api/market` route + rate limiting, `SignalRail`, `app/page.tsx` layout, shared visual
+   pass. Depends on (2) only for the checker copy shown in the impersonator ticker's tooltips/notes;
+   otherwise independent.
 
 ## Testing
 
