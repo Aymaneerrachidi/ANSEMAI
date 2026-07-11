@@ -77,8 +77,10 @@ allowlist" (exact match) and "impersonator list" (fuzzy match):
 
 - Before matching, normalize both the submitted value and every `pattern`: strip `https://`/`http://`
   and leading `www.`, strip trailing slashes, lowercase.
-- `kind: "domain"` patterns match a submitted URL if the normalized submitted host **equals or ends
-  with** the pattern (so `claim.blackbullsol.club` also matches a `blackbullsol.club` pattern).
+- `kind: "domain"` patterns match a submitted URL if the normalized submitted host **equals the
+  pattern, or ends with `.` + the pattern** (so `claim.blackbullsol.club` matches a
+  `blackbullsol.club` pattern, but `evilfakeblackbullsol.club` does not — the dot boundary prevents
+  suffix-string false positives).
 - `kind: "handle"` patterns match a submitted `@handle` if the normalized handle (no `@`) equals the
   pattern exactly (handles don't get substring/subdomain-style matching).
 - Impersonator matching runs only for values that did **not** already match the official allowlist —
@@ -93,10 +95,11 @@ also print configured impersonators, for consistency with how it already lists o
 ## 2. Backend logic (`lib/answer-engine.ts`, `lib/intents.ts`)
 
 - **Scam-checker upgrade**: `verifyUserInput` currently only checks submitted URLs/addresses/handles
-  against the official allowlist. Add a check against `config.knownImpersonators` (substring/domain
-  match) so a submitted link/handle can be flagged explicitly — "this matches a known impersonator:
-  `<note>`" — instead of the generic "couldn't verify." Falls back to today's generic message when
-  there's no match either way.
+  against the official allowlist. Add a check against `config.knownImpersonators`, using exactly the
+  matching rules defined in Section 1 (domain suffix-match with a dot boundary, handle exact-match,
+  never both at once) so a submitted link/handle can be flagged explicitly — "this matches a known
+  impersonator: `<note>`" — instead of the generic "couldn't verify." Falls back to today's generic
+  message when there's no match either way.
 - **System prompt rewrite**: replace the current single-paragraph system prompt with one that keeps
   every existing hard rule (scope refusal, no invention, exact refusal phrase, scam warnings, "not
   financial advice") and adds explicit instruction to separate "official/confirmed,"
@@ -136,7 +139,9 @@ with no cache window (`cache: "no-store"`) — so it must reuse the same `checkR
 `clientKeyFromHeaders` utilities `/api/chat` already uses (`lib/rate-limit.ts`), keyed per-client,
 before this becomes a free way to hammer the configured RPC endpoint. The DexScreener half can keep
 relying on its existing `next: { revalidate: 30 }` fetch cache; the rate limit is specifically to
-protect the RPC call.
+protect the RPC call. Use a route-prefixed key (e.g. `` `market:${ip}` ``) rather than sharing
+`/api/chat`'s bare-IP bucket, so a browser tab polling the rail in the background doesn't eat into a
+user's chat-request budget.
 
 ## 4. Visual redesign — Terminal split-view
 
@@ -182,8 +187,10 @@ protect the RPC call.
 - No admin UI (unchanged project constraint).
 - No new paid API integrations — panel reuses existing DexScreener/Solana RPC calls only.
 - No embedding/semantic search work (README already flags this as a separate future item).
-- No change to rate limiting, Supabase document merge, or the LLM provider fallback chain beyond
-  the system prompt content itself.
+- No change to the rate-limiting *mechanism* or thresholds (still in-memory, still 20 req/min),
+  Supabase document merge, or the LLM provider fallback chain beyond the system prompt content
+  itself. (The new `/api/market` route does apply the existing mechanism to itself, per Section 3 —
+  that's extending its use, not changing it.)
 
 ## Sequencing
 
@@ -196,8 +203,9 @@ should be planned/built as three ordered sub-steps, not one monolithic change:
    matching, system prompt rewrite, local composer enrichment. Depends on (1) existing in config.
    Independently testable via `answerQuestion`/`localAnswer` without touching the UI.
 3. **UI** — `/api/market` route + rate limiting, `SignalRail`, `app/page.tsx` layout, shared visual
-   pass. Depends on (2) only for the checker copy shown in the impersonator ticker's tooltips/notes;
-   otherwise independent.
+   pass. Depends on (1) for `config.knownImpersonators` (the ticker renders each entry's `label` and
+   `note` directly from config, not from anything `verifyUserInput` computes); does not depend on
+   (2) at all.
 
 ## Testing
 
