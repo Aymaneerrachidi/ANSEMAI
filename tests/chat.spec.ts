@@ -22,3 +22,19 @@ test("refuses out-of-scope questions", async ({ page }) => {
   const assistantReply = page.locator("article").last();
   await expect(assistantReply).toContainText("I can only answer questions about", { timeout: 15_000 });
 });
+
+test("flags a known impersonator domain as not official", async ({ page }) => {
+  await page.goto("/");
+  await page.getByPlaceholder("Ask AnsemAI...").fill("Is https://blackbullsol.club official?");
+  await page.getByRole("button", { name: "Send message" }).click();
+
+  const assistantReply = page.locator("article").last();
+  await expect(assistantReply).toContainText(/impersonat|not official/i, { timeout: 15_000 });
+});
+
+test("signal rail shows live data or an explicit fetch-failure state, never a blank panel", async ({ page }) => {
+  await page.goto("/");
+  const rail = page.locator("aside");
+  await expect(rail).toBeVisible();
+  await expect(rail.getByText(/market cap|couldn't fetch/i).first()).toBeVisible({ timeout: 15_000 });
+});

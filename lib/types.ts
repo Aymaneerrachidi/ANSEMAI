@@ -21,6 +21,13 @@ export type KnowledgeDocument = {
   content: string;
 };
 
+export type KnownImpersonator = {
+  label: string;
+  kind: "domain" | "handle";
+  pattern: string;
+  note: string;
+};
+
 export type AnsemConfig = {
   projectName: string;
   officialContract: string;
@@ -30,6 +37,7 @@ export type AnsemConfig = {
   trustedXAccounts: TrustedAccount[];
   announcementSources: AnnouncementSource[];
   documents: KnowledgeDocument[];
+  knownImpersonators?: KnownImpersonator[];
   apiKeys: {
     openai?: string;
     llmProvider?: string;

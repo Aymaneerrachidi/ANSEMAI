@@ -66,17 +66,58 @@
     {
       "title": "Who is Ansem",
       "kind": "faq",
-      "content": "Within this assistant's configured sources, Ansem is tied to the trusted dev/community X account @blknoiz06. Third-party crypto coverage commonly describes Ansem as a Solana trader/influencer or KOL connected to the narrative around The Black Bull. This assistant should avoid personal claims that are not in configured sources and should refer users to the trusted account link for identity verification."
+      "content": "Within this assistant's configured sources, Ansem is tied to the trusted dev/community X account @blknoiz06. Third-party crypto coverage (not an official project bio) commonly reports his real name as Zion Thomas, a Solana trader and analyst with roughly 750,000 X followers, informally nicknamed 'The Solana Guy' for his early, vocal backing of Solana and Solana-ecosystem memecoins. He is also reported as a co-founder of the Bullpen trading terminal. This assistant treats these as third-party-reported facts, not confirmed official statements, and refers users to the trusted account link for identity verification."
     },
     {
-      "title": "Risk explanation",
+      "title": "How $ANSEM originated",
+      "kind": "history",
+      "content": "Per third-party crypto-news coverage, $ANSEM / The Black Bull was deployed on Pump.fun by an anonymous developer in mid-June 2026, who airdropped roughly 65% of the token supply directly to Ansem's (@blknoiz06) public wallet. Ansem did not launch the token himself and it was not originally his project. He later publicly embraced it and pledged to route Pump.fun creator fees back to holders through recurring airdrops, funded by fees rather than by extracting them personally. This assistant states this as reported history, not as an official project statement, since no official team bio is configured."
+    },
+    {
+      "title": "Holder concentration risk",
       "kind": "risk",
-      "content": "$ANSEM is a memecoin-style crypto asset, so risks include extreme volatility, copycat contracts, impersonator accounts, low-liquidity price swings, slippage, wallet-draining links, fake airdrops, exchange delistings, and rumors spreading faster than verified information. Market-cap changes do not mean guaranteed liquidity. Always verify the contract and links before trading. Market answers must include not financial advice."
+      "content": "$ANSEM is a memecoin-style crypto asset, so risks include extreme volatility, copycat contracts, impersonator accounts, low-liquidity price swings, slippage, wallet-draining links, fake airdrops, exchange delistings, and rumors spreading faster than verified information. On top of these general risks, on-chain screening tools and analysts covering this token have flagged that a small number of top wallets hold a large majority of total supply, which is a distinct manipulation/volatility risk (concentrated holders can move price sharply) separate from any claim that the project itself is a scam. Market-cap changes do not mean guaranteed liquidity. Always verify the contract and links before trading, and use the holder-snapshot data this assistant can fetch live to check current concentration yourself. Market answers must include not financial advice."
+    },
+    {
+      "title": "Known impersonators and copycat sites",
+      "kind": "security",
+      "content": "Only blackbullsol.com (official website) and @blknoiz06 (trusted dev X account) are treated as official in this assistant's configuration. Multiple confusingly-similar domains and accounts have been reported as unofficial or actively malicious impersonators of this project, including a wallet-draining fake-airdrop site and lookalike domains that are not the official site, plus at least one fan-run X account that X itself labels as a fan account rather than official. Never connect a wallet, enter a seed phrase, or approve a transaction on a site that is not blackbullsol.com. This assistant checks submitted links/handles against the configured official sources and known-impersonator list, but the list can never be complete, so always verify the exact domain yourself before connecting a wallet."
+    },
+    {
+      "title": "Rumor check: 'Ansem was arrested'",
+      "kind": "rumor",
+      "content": "A rumor claiming Ansem (@blknoiz06) had been arrested circulated on X in 2026 after he was quiet on social media for about a week, amplified by joke posts and by an AI chatbot repeating the claim when asked who he is. Ansem addressed it directly in his own community chat, saying he was traveling with family and was not in any legal trouble. This assistant treats that rumor as false based on his own direct statement, and lists it here as an example of how fast-moving, unverified claims about this project or its associated figures should be checked against direct statements before being repeated as fact."
     },
     {
       "title": "What AnsemAI can answer",
       "kind": "faq",
       "content": "AnsemAI can answer beginner explanations, official contract checks, official link checks, scam warnings, risk explanations, holder/supply caveats, and live market questions through DexScreener. It should refuse unrelated questions and should say it couldn't verify information from official sources when configured sources do not support the answer."
+    }
+  ],
+  "knownImpersonators": [
+    {
+      "label": "Fake airdrop-claim site (wallet drainer)",
+      "kind": "domain",
+      "pattern": "blackbullsolclaim.pro",
+      "note": "Confirmed wallet-drainer scam site impersonating an official Black Bull airdrop claim page. Never connect a wallet here."
+    },
+    {
+      "label": "Copycat domain",
+      "kind": "domain",
+      "pattern": "blackbullsol.club",
+      "note": "Not the official site. The official domain is blackbullsol.com only."
+    },
+    {
+      "label": "Copycat domain",
+      "kind": "domain",
+      "pattern": "ansemblackbull.com",
+      "note": "Not the official site. The official domain is blackbullsol.com only."
+    },
+    {
+      "label": "Fan account, not official",
+      "kind": "handle",
+      "pattern": "blackbullsol",
+      "note": "X labels this a fan account. The only trusted project-linked X account configured here is @blknoiz06."
     }
   ],
   "apiKeys": {

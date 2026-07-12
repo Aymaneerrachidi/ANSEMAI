@@ -8,6 +8,7 @@
 //   node scripts/manage-config.mjs add-announcement-source --label "..." --type x --url "..."
 //   node scripts/manage-config.mjs add-official-link --label "..." --url "..."
 //   node scripts/manage-config.mjs add-trusted-account --handle "..." --label "..." --url "..."
+//   node scripts/manage-config.mjs add-impersonator --label "..." --kind domain --pattern "..." --note "..."
 //   node scripts/manage-config.mjs list
 
 import { readFile, writeFile } from "fs/promises";
@@ -81,6 +82,30 @@ async function addTrustedAccount(args) {
   console.log(`Added trusted account @${args.handle}. Total accounts: ${config.trustedXAccounts.length}`);
 }
 
+function normalizePattern(kind, rawPattern) {
+  let value = rawPattern.trim().toLowerCase();
+  if (kind === "handle") return value.replace(/^@/, "");
+  value = value.replace(/^https?:\/\//, "").replace(/^www\./, "");
+  return value.replace(/\/+$/, "");
+}
+
+async function addImpersonator(args) {
+  requireArgs(args, ["label", "kind", "pattern", "note"]);
+  if (!["domain", "handle"].includes(args.kind)) {
+    throw new Error("--kind must be one of: domain, handle");
+  }
+  const config = await loadConfig();
+  config.knownImpersonators = config.knownImpersonators ?? [];
+  config.knownImpersonators.push({
+    label: args.label,
+    kind: args.kind,
+    pattern: normalizePattern(args.kind, args.pattern),
+    note: args.note
+  });
+  await saveConfig(config);
+  console.log(`Added known impersonator "${args.label}". Total impersonators: ${config.knownImpersonators.length}`);
+}
+
 async function list() {
   const config = await loadConfig();
   console.log(`Documents (${config.documents.length}):`);
@@ -91,6 +116,9 @@ async function list() {
   config.officialLinks.forEach((link, i) => console.log(`  ${i + 1}. ${link.label} -> ${link.url}`));
   console.log(`\nTrusted X accounts (${config.trustedXAccounts.length}):`);
   config.trustedXAccounts.forEach((account, i) => console.log(`  ${i + 1}. @${account.handle} (${account.label})`));
+  const impersonators = config.knownImpersonators ?? [];
+  console.log(`\nKnown impersonators (${impersonators.length}):`);
+  impersonators.forEach((entry, i) => console.log(`  ${i + 1}. [${entry.kind}] ${entry.pattern} - ${entry.label}: ${entry.note}`));
 }
 
 async function main() {
@@ -106,6 +134,8 @@ async function main() {
       return addOfficialLink(args);
     case "add-trusted-account":
       return addTrustedAccount(args);
+    case "add-impersonator":
+      return addImpersonator(args);
     case "list":
       return list();
     default:
@@ -116,6 +146,7 @@ async function main() {
           '  node scripts/manage-config.mjs add-announcement-source --label "..." --type x --url "..."',
           '  node scripts/manage-config.mjs add-official-link --label "..." --url "..."',
           '  node scripts/manage-config.mjs add-trusted-account --handle "..." --label "..." --url "..."',
+          '  node scripts/manage-config.mjs add-impersonator --label "..." --kind domain --pattern "..." --note "..."',
           "  node scripts/manage-config.mjs list"
         ].join("\n")
       );

@@ -1,9 +1,8 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
-import { BadgeCheck, CheckCircle2, ExternalLink, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { ArrowUp, BadgeCheck, Radio, ExternalLink, ShieldCheck, Sparkles } from "lucide-react";
 import { BullLogo } from "@/components/bull-logo";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ChatMessage, Source } from "@/lib/types";
 
@@ -16,17 +15,23 @@ const starters = [
   "Why is the price moving?"
 ];
 
+const INTRO =
+  "Ask me about $ANSEM official links, contracts, updates, holder FAQs, scams, or live market data. I cite configured sources and say clearly when I can't verify something.";
+
 export function Chat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        "Ask me about $ANSEM official links, contracts, updates, holder FAQs, scams, or live market data. I will cite configured sources and say when I cannot verify something."
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([{ role: "assistant", content: INTRO }]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const isEmptyState = messages.length === 1;
+
+  useEffect(() => {
+    if (!isEmptyState) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [messages, isEmptyState]);
 
   async function submit(nextInput?: string) {
     const message = (nextInput ?? input).trim();
@@ -110,84 +115,124 @@ export function Chat() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-raised)] px-5">
-          <div className="flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
-            <CheckCircle2 size={16} className="text-[var(--ok)]" />
-            Ansem coin assistant
+        {/* Panel header */}
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--surface-raised)]/60 px-5 backdrop-blur-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--primary-soft)]">
+              <Radio size={14} className="text-[var(--primary)]" />
+            </span>
+            <div className="leading-tight">
+              <p className="text-[13px] font-semibold text-[var(--foreground)]">Coin assistant</p>
+              <p className="text-[11px] text-[var(--muted)]">Grounded in official sources</p>
+            </div>
           </div>
-          <p className="hidden text-sm text-[var(--muted)] sm:block">$ANSEM questions only</p>
+          <span className="hidden items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] text-[var(--muted)] sm:flex">
+            <span className="pulse-dot" style={{ width: 5, height: 5 }} />
+            Online
+          </span>
         </div>
-        <div className="scrollbar flex-1 overflow-y-auto bg-[var(--bg)] px-5 py-5">
-          <div className="mx-auto flex max-w-3xl flex-col gap-5">
-            {messages.map((message, index) => (
-              <article
-                key={index}
-                className={`msg-in ${message.role === "user" ? "ml-auto max-w-[82%]" : "max-w-[88%]"}`}
-              >
-                <div className="mb-2 flex items-center gap-2 text-sm text-[var(--muted)]">
-                  {message.role === "assistant" ? <BullLogo size={22} /> : <BadgeCheck size={16} className="text-[var(--primary)]" />}
-                  <span className="text-[var(--muted-strong)]">{message.role === "assistant" ? "AnsemAI" : "You"}</span>
-                </div>
-                <div
-                  className={
-                    message.role === "user"
-                      ? "rounded-md border border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-6 text-[var(--foreground)]"
-                      : "message-text rounded-md border border-[var(--border)] border-l-2 border-l-[var(--primary)] bg-[var(--surface-raised)] px-4 py-3 text-sm leading-6 whitespace-pre-wrap text-[var(--foreground)] shadow-[0_1px_0_rgba(0,0,0,0.3)]"
-                  }
-                >
-                  {message.content}
-                </div>
-                {message.sources && message.sources.length > 0 ? (
-                  <div className="mt-2 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2">
-                    <div className="mb-1 flex items-center gap-2 text-xs font-medium text-[var(--muted-strong)]">
-                      <ShieldCheck size={14} className="text-[var(--primary)]" />
-                      Sources
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      {message.sources.slice(0, 8).map((source, sourceIndex) =>
-                        source.url ? (
-                          <a
-                            key={`${source.title}-${sourceIndex}`}
-                            href={source.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-2 text-xs text-[var(--muted-strong)] underline-offset-2 hover:text-[var(--primary)] hover:underline"
-                          >
-                            <ExternalLink size={13} />
-                            {source.title}
-                          </a>
-                        ) : (
-                          <p key={`${source.title}-${sourceIndex}`} className="text-xs text-[var(--muted)]">
-                            {source.title}
-                            {source.detail ? `: ${source.detail}` : ""}
-                          </p>
-                        )
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-              </article>
-            ))}
-            {messages.length === 1 ? (
-              <div className="grid gap-2 sm:grid-cols-2">
+
+        {/* Conversation */}
+        <div ref={scrollRef} className="scrollbar flex-1 overflow-y-auto bg-[var(--bg)] px-5 py-6">
+          {isEmptyState ? (
+            <div className="hero-in mx-auto flex h-full max-w-lg flex-col items-center justify-center py-4 text-center">
+              <div className="hero-glow brand-medallion mb-4 h-12 w-12">
+                <BullLogo size={28} />
+              </div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">
+                The Black Bull desk
+              </p>
+              <h2 className="wordmark text-[24px] leading-[1.08] text-[var(--foreground)] sm:text-[28px]">
+                Ask the desk about <span className="text-[var(--primary)]">$ANSEM</span>
+              </h2>
+              <p className="mx-auto mt-2.5 max-w-sm text-[12.5px] leading-5 text-[var(--muted-strong)]">{INTRO}</p>
+
+              <div className="mt-5 grid w-full gap-2 sm:grid-cols-2">
                 {starters.map((starter, index) => (
                   <button
                     type="button"
                     key={starter}
-                    style={{ animationDelay: `${index * 60}ms` }}
+                    style={{ animationDelay: `${index * 55}ms` }}
                     onClick={() => void submit(starter)}
-                    className="starter-in flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-3 text-left text-sm leading-5 text-[var(--muted-strong)] transition-colors hover:border-[var(--primary)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                    className="starter-in rail-card group flex items-center gap-2.5 px-3 py-2.5 text-left text-[13px] leading-5 text-[var(--muted-strong)] transition-all hover:-translate-y-0.5 hover:border-[var(--border-glow)] hover:text-[var(--foreground)]"
                   >
-                    <Sparkles size={15} className="text-[var(--primary)]" />
+                    <Sparkles size={14} className="shrink-0 text-[var(--primary)] transition-transform group-hover:scale-110" />
                     {starter}
                   </button>
                 ))}
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <div className="mx-auto flex max-w-3xl flex-col gap-6">
+              {messages.map((message, index) => (
+                <article key={index} className={`msg-in ${message.role === "user" ? "ml-auto max-w-[82%]" : "max-w-[90%]"}`}>
+                  <div className="mb-2 flex items-center gap-2 text-[12px] text-[var(--muted)]">
+                    {message.role === "assistant" ? (
+                      <span className="grid h-6 w-6 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-muted)]">
+                        <BullLogo size={16} />
+                      </span>
+                    ) : (
+                      <BadgeCheck size={15} className="text-[var(--primary)]" />
+                    )}
+                    <span className="font-medium text-[var(--muted-strong)]">
+                      {message.role === "assistant" ? "AnsemAI" : "You"}
+                    </span>
+                  </div>
+                  <div
+                    className={
+                      message.role === "user"
+                        ? "msg-bubble msg-bubble-user px-4 py-3 text-[14px] leading-6"
+                        : "msg-bubble msg-bubble-assistant message-text px-4 py-3.5 text-[14px] leading-6"
+                    }
+                  >
+                    {message.role === "assistant" && message.content === "" && isLoading && index === messages.length - 1 ? (
+                      <span className="typing-dots" aria-label="AnsemAI is typing">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    ) : (
+                      message.content
+                    )}
+                  </div>
+                  {message.sources && message.sources.length > 0 ? (
+                    <div className="rail-card mt-2.5 px-3.5 py-2.5">
+                      <div className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--muted)]">
+                        <ShieldCheck size={13} className="text-[var(--primary)]" />
+                        Sources
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {message.sources.slice(0, 8).map((source, sourceIndex) =>
+                          source.url ? (
+                            <a
+                              key={`${source.title}-${sourceIndex}`}
+                              href={source.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 text-[12.5px] text-[var(--muted-strong)] underline-offset-2 transition-colors hover:text-[var(--primary)] hover:underline"
+                            >
+                              <ExternalLink size={13} className="shrink-0" />
+                              {source.title}
+                            </a>
+                          ) : (
+                            <p key={`${source.title}-${sourceIndex}`} className="text-[12.5px] text-[var(--muted)]">
+                              {source.title}
+                              {source.detail ? `: ${source.detail}` : ""}
+                            </p>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          )}
         </div>
-        <form onSubmit={onSubmit} className="border-t border-[var(--border)] bg-[var(--surface-raised)] px-5 py-4">
-          <div className="mx-auto flex max-w-3xl gap-2">
+
+        {/* Composer */}
+        <form onSubmit={onSubmit} className="border-t border-[var(--border)] bg-[var(--surface-raised)]/70 px-5 py-4 backdrop-blur-sm">
+          <div className="composer mx-auto flex max-w-3xl items-end gap-2 rounded-[var(--radius-control)] border border-[var(--border)] bg-[var(--surface-muted)] p-1.5 pl-3 transition-colors focus-within:border-[var(--border-glow)] focus-within:shadow-[0_0_0_4px_var(--primary-softer)]">
             <Textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -197,19 +242,22 @@ export function Chat() {
                   void submit();
                 }
               }}
-              placeholder="Ask AnsemAI..."
-              className="min-h-11"
+              placeholder="Ask AnsemAI about $ANSEM…"
+              className="min-h-11 flex-1 resize-none border-0 bg-transparent px-0 py-2.5 shadow-none focus:border-0 focus:shadow-none"
             />
-            <Button
+            <button
               type="button"
               disabled={isLoading || !input.trim()}
               aria-label="Send message"
-              className="h-11 w-11 px-0"
               onClick={() => void submit()}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-[var(--primary)] text-[var(--primary-foreground)] transition-all hover:bg-[var(--primary-strong)] disabled:opacity-35 disabled:hover:bg-[var(--primary)]"
             >
-              <Send size={17} />
-            </Button>
+              <ArrowUp size={18} strokeWidth={2.4} />
+            </button>
           </div>
+          <p className="mx-auto mt-2 max-w-3xl px-1 text-[10.5px] text-[var(--muted)]">
+            AnsemAI can be wrong. Always verify the contract before you buy.
+          </p>
         </form>
       </section>
     </div>

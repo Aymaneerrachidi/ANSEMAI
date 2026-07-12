@@ -11,8 +11,8 @@ export type Intent =
   | "general";
 
 const marketWords = ["price", "liquidity", "volume", "market cap", "mcap", "chart", "candle", "moving", "fdv"];
-const holderWords = ["holders", "top wallet", "top wallets", "supply", "transaction", "tx", "wallet"];
-const checkerWords = ["is this", "real", "fake", "legit", "scam", "verify", "official"];
+const holderWords = ["holders", "top wallet", "top wallets", "supply", "transaction", "tx", "wallet", "concentration", "concentrated"];
+const checkerWords = ["is this", "real", "fake", "legit", "scam", "verify", "official", "rug", "impersonator", "who really made", "who actually made"];
 const latestWords = ["latest", "recent", "post", "posted", "announcement", "update", "tweet", "x account", "on x"];
 const otherMarketWords = ["price", "liquidity", "volume", "chart", "candle", "moving", "fdv"];
 

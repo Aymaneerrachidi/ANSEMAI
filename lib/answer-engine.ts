@@ -80,7 +80,15 @@ function isAnsemScoped(query: string) {
     "on x",
     "scam",
     "fake",
-    "official"
+    "official",
+    "legit",
+    "rug",
+    "impersonator",
+    "concentration",
+    "concentrated",
+    "who really made",
+    "who actually made",
+    "zion thomas"
   ];
 
   return scopeTerms.some((term) => text.includes(term));
@@ -92,6 +100,31 @@ function outOfScopeAnswer(config: AnsemConfig): LiveResult {
       "I can only answer questions about $ANSEM / The Black Bull, official sources, scam checks, contracts, holder information, announcements, and live token-market data. Ask me an $ANSEM-related question and I will verify it against official sources.",
     sources: officialSources(config)
   };
+}
+
+function normalizeHost(value: string): string {
+  try {
+    const withScheme = value.includes("://") ? value : `https://${value}`;
+    return new URL(withScheme).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return value
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .replace(/\/.*$/, "");
+  }
+}
+
+function normalizeHandle(value: string): string {
+  return value.replace(/^@/, "").toLowerCase();
+}
+
+function findImpersonatorMatch(config: AnsemConfig, kind: "domain" | "handle", normalizedValue: string) {
+  return (config.knownImpersonators ?? []).find((entry) => {
+    if (entry.kind !== kind) return false;
+    if (kind === "handle") return normalizedValue === entry.pattern;
+    return normalizedValue === entry.pattern || normalizedValue.endsWith(`.${entry.pattern}`);
+  });
 }
 
 function verifyUserInput(config: AnsemConfig, query: string): LiveResult {
@@ -117,12 +150,30 @@ function verifyUserInput(config: AnsemConfig, query: string): LiveResult {
 
   for (const url of urls) {
     const normalized = url.toLowerCase().replace(/\/$/, "");
-    findings.push(officialUrls.has(normalized) ? `${url}: listed as an official source.` : `${url}: I couldn't verify this from official sources.`);
+    if (officialUrls.has(normalized)) {
+      findings.push(`${url}: listed as an official source.`);
+      continue;
+    }
+    const impersonator = findImpersonatorMatch(config, "domain", normalizeHost(url));
+    findings.push(
+      impersonator
+        ? `${url}: matches a known impersonator (${impersonator.label}) - ${impersonator.note}`
+        : `${url}: I couldn't verify this from official sources.`
+    );
   }
 
   for (const handle of handles) {
-    const clean = handle.slice(1).toLowerCase();
-    findings.push(trustedHandles.has(clean) ? `${handle}: listed as a trusted X account.` : `${handle}: I couldn't verify this from official sources.`);
+    const clean = normalizeHandle(handle);
+    if (trustedHandles.has(clean)) {
+      findings.push(`${handle}: listed as a trusted X account.`);
+      continue;
+    }
+    const impersonator = findImpersonatorMatch(config, "handle", clean);
+    findings.push(
+      impersonator
+        ? `${handle}: matches a known impersonator (${impersonator.label}) - ${impersonator.note}`
+        : `${handle}: I couldn't verify this from official sources.`
+    );
   }
 
   if (findings.length === 0) {
@@ -151,12 +202,15 @@ function localAnswer(config: AnsemConfig, query: string): LiveResult {
     };
   }
 
-  if (/\bwho\s+is\s+ansem\b/.test(text)) {
+  if (/\bwho\s+is\s+ansem\b/.test(text) || /\bwho\s+(really|actually)?\s*made\s+(this|the token|ansem|black bull)\b/.test(text)) {
     const devAccount = config.trustedXAccounts.find((account) => account.handle.toLowerCase() === "blknoiz06") ?? config.trustedXAccounts[0];
+    const bioDocs = config.documents.filter((doc) => /who is ansem|how \$ansem originated/i.test(doc.title));
+    const context = bioDocs.map((doc) => doc.content).join("\n\n");
+    const accountLine = devAccount
+      ? `The trusted dev X account configured here is @${devAccount.handle} (${devAccount.url}).`
+      : "I couldn't verify a trusted dev account from the configured official sources.";
     return {
-      text: devAccount
-        ? `In this assistant's configured official sources, Ansem is represented by the trusted dev X account @${devAccount.handle} (${devAccount.url}). I do not have a deeper official bio configured yet, so I won't invent one.`
-        : "I couldn't verify who Ansem is from the configured official sources.",
+      text: context ? `${context}\n\n${accountLine}` : `I don't have a deeper bio configured yet, so I won't invent one. ${accountLine}`,
       sources
     };
   }
@@ -201,8 +255,12 @@ function localAnswer(config: AnsemConfig, query: string): LiveResult {
   }
 
   if (intent === "risk") {
+    const riskDocs = config.documents.filter((doc) => doc.kind === "risk");
+    const context = riskDocs.map((doc) => doc.content).join("\n\n");
     return {
-      text: `Key risks include market volatility, thin liquidity, fake contracts, impersonator accounts, malicious Telegram or Discord links, wallet-draining approvals, and unconfirmed rumors.\n\nI can only confirm project-specific risks from uploaded official docs. ${scamWarning()}\n\nNot financial advice.`,
+      text: context
+        ? `${context}\n\n${scamWarning()}\n\nNot financial advice.`
+        : `Key risks include market volatility, thin liquidity, fake contracts, impersonator accounts, malicious Telegram or Discord links, wallet-draining approvals, and unconfirmed rumors.\n\nI can only confirm project-specific risks from uploaded official docs. ${scamWarning()}\n\nNot financial advice.`,
       sources
     };
   }
@@ -248,8 +306,15 @@ async function llmAnswer(config: AnsemConfig, query: string, local: LiveResult):
         messages: [
           {
             role: "system",
-            content:
-              "You are AnsemAI, a support and education assistant only for $ANSEM / The Black Bull. You must refuse non-$ANSEM questions. Never answer general knowledge, coding, politics, entertainment, personal advice, or unrelated crypto questions. Never invent information. Use only the verified local context and sources provided by the app. If a claim is not confirmed, say exactly: I couldn't verify this from official sources. Warn about fake contracts, fake X accounts, fake Telegrams, fake Discords, and scam links when relevant. Add Not financial advice for market-related answers."
+            content: [
+              "You are AnsemAI, a support and education assistant only for $ANSEM / The Black Bull, a Solana memecoin.",
+              "Scope: refuse non-$ANSEM questions (general knowledge, coding, politics, entertainment, personal advice, unrelated crypto). Refuse by saying you can only answer $ANSEM / The Black Bull questions.",
+              "Never invent information. Use only the verified local context and sources given to you below - do not add facts from your own training data about this project, even if you recall something about it.",
+              "If a claim is not confirmed by the given context, say exactly: I couldn't verify this from official sources.",
+              "Provenance discipline: the local context mixes three kinds of claims - (a) official/configured facts (contract, links, trusted accounts), (b) third-party-reported facts (e.g. biographical or origin-story claims attributed to crypto-news coverage), and (c) risk/security warnings. When you use (b), keep language like 'reported' or 'per third-party coverage' rather than stating it as confirmed fact. Do not blur (b) into (a).",
+              "Warn about fake contracts, fake X accounts, fake Telegrams, fake Discords, known impersonator domains, and scam links when relevant to the question.",
+              "Add 'Not financial advice.' for market-related answers."
+            ].join(" ")
           },
           {
             role: "user",

@@ -85,6 +85,35 @@ async function fetchAnsemPair(config: AnsemConfig): Promise<{ pair: DexPair } | 
   return { pair };
 }
 
+export type MarketSnapshot = {
+  priceUsd?: number;
+  change24hPct?: number;
+  marketCapUsd?: number;
+  liquidityUsd?: number;
+  volume24hUsd?: number;
+  pairUrl?: string;
+};
+
+export type MarketSnapshotResult = { ok: true; data: MarketSnapshot } | { ok: false; message: string };
+
+export async function getMarketSnapshot(config: AnsemConfig): Promise<MarketSnapshotResult> {
+  const result = await fetchAnsemPair(config);
+  if ("error" in result) return { ok: false, message: result.error.text };
+  const { pair } = result;
+
+  return {
+    ok: true,
+    data: {
+      priceUsd: pair.priceUsd ? Number(pair.priceUsd) : undefined,
+      change24hPct: pair.priceChange?.h24,
+      marketCapUsd: pair.marketCap,
+      liquidityUsd: pair.liquidity?.usd,
+      volume24hUsd: pair.volume?.h24,
+      pairUrl: pair.url
+    }
+  };
+}
+
 export async function getDexScreenerMarketCap(config: AnsemConfig): Promise<LiveResult> {
   const result = await fetchAnsemPair(config);
   if ("error" in result) return result.error;

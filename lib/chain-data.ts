@@ -33,13 +33,24 @@ function formatAmount(raw: string, decimals: number) {
   return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
-export async function getHolderSnapshot(config: AnsemConfig): Promise<LiveResult> {
+type HolderData = {
+  decimals: number;
+  totalSupplyRaw: string;
+  top: Array<{ address: string; amount: string }>;
+  topSharePct: number;
+  endpoint: string;
+  solscanHoldersUrl?: string;
+};
+
+async function fetchHolderData(config: AnsemConfig): Promise<{ data: HolderData } | { error: LiveResult }> {
   const solscanHoldersUrl = config.officialContract ? `https://solscan.io/token/${config.officialContract}#holders` : undefined;
 
   if (!config.officialContract) {
     return {
-      text: "I could not fetch holder/supply data because the official contract address has not been added to the project configuration yet. I couldn't verify this from official sources.",
-      sources: [{ title: "Project configuration", detail: "Official contract missing" }]
+      error: {
+        text: "I could not fetch holder/supply data because the official contract address has not been added to the project configuration yet. I couldn't verify this from official sources.",
+        sources: [{ title: "Project configuration", detail: "Official contract missing" }]
+      }
     };
   }
 
@@ -55,33 +66,66 @@ export async function getHolderSnapshot(config: AnsemConfig): Promise<LiveResult
     const totalSupply = Number(supply.value.amount);
     const top = largest.value.slice(0, 10);
     const topSum = top.reduce((sum, account) => sum + Number(account.amount), 0);
-    const topShare = totalSupply > 0 ? ((topSum / totalSupply) * 100).toFixed(2) : "0";
+    const topSharePct = totalSupply > 0 ? (topSum / totalSupply) * 100 : 0;
 
-    const lines = [
-      "Live on-chain supply data for the configured contract (Solana RPC):",
-      "",
-      `Total supply: ${formatAmount(supply.value.amount, decimals)}`,
-      `Top ${top.length} token accounts hold ${topShare}% of total supply.`,
-      "",
-      "Largest token accounts (address: balance):",
-      ...top.map((account, index) => `${index + 1}. ${account.address}: ${formatAmount(account.amount, decimals)}`),
-      "",
-      "This is raw token-account balance data, not a labeled holder count (some large accounts can be exchanges, LPs, or program-owned). For a full unique-holder count and wallet labels, check Solscan.",
-      "",
-      "Not financial advice."
-    ];
-
-    return {
-      text: lines.join("\n"),
-      sources: [
-        { title: endpoint.includes("helius") ? "Solana RPC via Helius" : "Solana public RPC", detail: "getTokenSupply / getTokenLargestAccounts" },
-        ...(solscanHoldersUrl ? [{ title: "Solscan token holders", url: solscanHoldersUrl }] : [])
-      ]
-    };
+    return { data: { decimals, totalSupplyRaw: supply.value.amount, top, topSharePct, endpoint, solscanHoldersUrl } };
   } catch {
     return {
-      text: "I could not fetch live holder/supply data right now (the Solana RPC endpoint did not respond or timed out). I couldn't verify this from official sources.\n\nYou can check holder counts directly on Solscan in the meantime.",
-      sources: solscanHoldersUrl ? [{ title: "Solscan token holders", url: solscanHoldersUrl }] : []
+      error: {
+        text: "I could not fetch live holder/supply data right now (the Solana RPC endpoint did not respond or timed out). I couldn't verify this from official sources.\n\nYou can check holder counts directly on Solscan in the meantime.",
+        sources: solscanHoldersUrl ? [{ title: "Solscan token holders", url: solscanHoldersUrl }] : []
+      }
     };
   }
+}
+
+export async function getHolderSnapshot(config: AnsemConfig): Promise<LiveResult> {
+  const result = await fetchHolderData(config);
+  if ("error" in result) return result.error;
+  const { decimals, totalSupplyRaw, top, topSharePct, endpoint, solscanHoldersUrl } = result.data;
+
+  const lines = [
+    "Live on-chain supply data for the configured contract (Solana RPC):",
+    "",
+    `Total supply: ${formatAmount(totalSupplyRaw, decimals)}`,
+    `Top ${top.length} token accounts hold ${topSharePct.toFixed(2)}% of total supply.`,
+    "",
+    "Largest token accounts (address: balance):",
+    ...top.map((account, index) => `${index + 1}. ${account.address}: ${formatAmount(account.amount, decimals)}`),
+    "",
+    "This is raw token-account balance data, not a labeled holder count (some large accounts can be exchanges, LPs, or program-owned). For a full unique-holder count and wallet labels, check Solscan.",
+    "",
+    "Not financial advice."
+  ];
+
+  return {
+    text: lines.join("\n"),
+    sources: [
+      { title: endpoint.includes("helius") ? "Solana RPC via Helius" : "Solana public RPC", detail: "getTokenSupply / getTokenLargestAccounts" },
+      ...(solscanHoldersUrl ? [{ title: "Solscan token holders", url: solscanHoldersUrl }] : [])
+    ]
+  };
+}
+
+export type HolderSnapshotData = {
+  totalSupply: number;
+  topHolderSharePct: number;
+  solscanUrl?: string;
+};
+
+export type HolderSnapshotDataResult = { ok: true; data: HolderSnapshotData } | { ok: false; message: string };
+
+export async function getHolderSnapshotData(config: AnsemConfig): Promise<HolderSnapshotDataResult> {
+  const result = await fetchHolderData(config);
+  if ("error" in result) return { ok: false, message: result.error.text };
+
+  const { decimals, totalSupplyRaw, topSharePct, solscanHoldersUrl } = result.data;
+  return {
+    ok: true,
+    data: {
+      totalSupply: Number(totalSupplyRaw) / 10 ** decimals,
+      topHolderSharePct: Number(topSharePct.toFixed(2)),
+      solscanUrl: solscanHoldersUrl
+    }
+  };
 }
