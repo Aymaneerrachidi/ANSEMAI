@@ -8,7 +8,7 @@ import { SignalRailPanel } from "@/components/signal-rail-panel";
 
 export default function Home() {
   return (
-    <main className="app-shell flex h-screen min-h-[640px] flex-col gap-3 p-3 sm:gap-4 sm:p-4">
+    <main className="app-shell flex min-h-[100dvh] min-h-[640px] flex-col gap-3 p-3 sm:gap-4 sm:p-4">
       <header className="hero-bar mx-auto flex w-full max-w-[1240px] shrink-0 items-center justify-between gap-3 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-3.5">
           <div className="brand-medallion h-11 w-11">
